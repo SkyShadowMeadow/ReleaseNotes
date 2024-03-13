@@ -1,16 +1,19 @@
 using Microsoft.AspNetCore.Mvc;
+using Services;
 
-namespace ReleaseNotes.Controllers;
+namespace Controllers;
 
 [ApiController]
 [Route("[controller]")]
 public class ReleaseNotesController : ControllerBase
 {
     private readonly IHttpClientFactory _clientFactory;
+    private readonly IGitServices _gitServices;
 
-    public ReleaseNotesController(IHttpClientFactory clientFactory)
+    public ReleaseNotesController(IHttpClientFactory clientFactory, IGitServices gitServices)
     {
         _clientFactory = clientFactory;
+        _gitServices = gitServices;
     }
 
 
@@ -19,14 +22,7 @@ public class ReleaseNotesController : ControllerBase
     {
         try
         {
-            string[] parts = repoUrl.Split('/');
-            if (parts.Length < 4)
-            {
-                return BadRequest("Invalid repository URL");
-            }
-            string owner = parts[3];
-            string repoName = parts[4];
-
+            (string owner, string repoName) = _gitServices.ParseRepositoryUrl(repoUrl);
             var apiUrl = $"https://api.github.com/repos/{owner}/{repoName}/tags";
 
             var client = _clientFactory.CreateClient();
