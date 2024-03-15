@@ -34,6 +34,7 @@ public class ReleaseNotesController : ControllerBase
             var client = _clientFactory.CreateClient();
             client.DefaultRequestHeaders.Add("User-Agent", "ReleaseNotesApp");
             var gitRresponse = await client.GetAsync(tagsUrl);
+            string commitMessagesAsString = "";
 
             if (gitRresponse.IsSuccessStatusCode)
             {
@@ -54,7 +55,8 @@ public class ReleaseNotesController : ControllerBase
                 if (gitRresponse.IsSuccessStatusCode)
                 {
                     string responseBody = await gitRresponse.Content.ReadAsStringAsync();
-                    var commitMessages = _gitServices.GetCommitMessagesAsync(responseBody);
+                    GitHubApiResponse commitMessages = JsonConvert.DeserializeObject<GitHubApiResponse>(responseBody);
+                    commitMessagesAsString = commitMessages.GetConcatenatedResult();
                 }
                 else
                 {
@@ -62,7 +64,7 @@ public class ReleaseNotesController : ControllerBase
                 }
 
                 client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_aIModelProviderService.ChatGptAIModel.openAIKey}");
-                var releaseNotesAiUser = aiRequestModelProvider.ReleaseNotesAiUser("v1.0", "v2.0", "Fix crashing while login, Fix failing membership screen test, Fix login crash");
+                var releaseNotesAiUser = aiRequestModelProvider.ReleaseNotesAiUser("v1.0", "v2.0", commitMessagesAsString);
                 var requestBody = new
                 {
                     model = _aIModelProviderService.ChatGptAIModel.modelName,
