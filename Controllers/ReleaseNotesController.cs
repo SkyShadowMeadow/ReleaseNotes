@@ -1,8 +1,8 @@
+
 using Microsoft.AspNetCore.Mvc;
-using Services;
-using Newtonsoft.Json;
 using Models;
-using System.Diagnostics;
+using Newtonsoft.Json;
+using Services;
 
 namespace Controllers;
 
@@ -12,11 +12,14 @@ public class ReleaseNotesController : ControllerBase
 {
     private readonly IHttpClientFactory _clientFactory;
     private readonly IGitServices _gitServices;
+    private readonly AIModelProviderService _aIModelProviderService;
+    AIRequestModelProviderService aiRequestModelProvider = new AIRequestModelProviderService();
 
-    public ReleaseNotesController(IHttpClientFactory clientFactory, IGitServices gitServices)
+    public ReleaseNotesController(IHttpClientFactory clientFactory, IGitServices gitServices, AIModelProviderService aIModelProviderService)
     {
         _clientFactory = clientFactory;
         _gitServices = gitServices;
+        _aIModelProviderService = aIModelProviderService;
     }
 
 
@@ -30,11 +33,11 @@ public class ReleaseNotesController : ControllerBase
             var tagsUrl = $"https://api.github.com/repos/{owner}/{repoName}/tags";
             var client = _clientFactory.CreateClient();
             client.DefaultRequestHeaders.Add("User-Agent", "ReleaseNotesApp");
-            var response = await client.GetAsync(tagsUrl);
+            var gitRresponse = await client.GetAsync(tagsUrl);
 
-            if (response.IsSuccessStatusCode)
+            if (gitRresponse.IsSuccessStatusCode)
             {
-                var tagsJson = await response.Content.ReadAsStringAsync();
+                var tagsJson = await gitRresponse.Content.ReadAsStringAsync();
                 var tags = JsonConvert.DeserializeObject<List<Tag>>(tagsJson);
 
                 if (tags.Count < 2)
@@ -46,27 +49,70 @@ public class ReleaseNotesController : ControllerBase
                 var secondLastTag = tags[1].Name;
 
                 var commitsUrl = $"https://api.github.com/repos/{owner}/{repoName}/compare/{secondLastTag}...{lastTag}";
-                response = await client.GetAsync(commitsUrl);
+                gitRresponse = await client.GetAsync(commitsUrl);
 
-                if (response.IsSuccessStatusCode)
+                if (gitRresponse.IsSuccessStatusCode)
                 {
-                    string responseBody = await response.Content.ReadAsStringAsync();
+                    string responseBody = await gitRresponse.Content.ReadAsStringAsync();
                     var commitMessages = _gitServices.GetCommitMessagesAsync(responseBody);
-                    return Ok(commitMessages);
                 }
                 else
                 {
-                    return StatusCode((int)response.StatusCode, "Failed to fetch commits from GitHub API");
+                    return BadRequest("Failed to retrieve commits from GitHub.");
+                }
+
+                client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_aIModelProviderService.ChatGptAIModel.openAIKey}");
+                var releaseNotesAiUser = aiRequestModelProvider.ReleaseNotesAiUser("v1.0", "v2.0", "Fix crashing while login, Fix failing membership screen test, Fix login crash");
+                var requestBody = new
+                {
+                    model = _aIModelProviderService.ChatGptAIModel.modelName,
+                    messages = new[]
+                    {
+                    new { role = aiRequestModelProvider.ReleaseNotesAiAssistant.Role,  content = aiRequestModelProvider.ReleaseNotesAiAssistant.Content },
+                    new { role = releaseNotesAiUser.Role,  content = releaseNotesAiUser.Content }
+                }
+                };
+
+                var AIResponse = await client.PostAsJsonAsync("https://api.openai.com/v1/chat/completions", requestBody);
+
+                if (AIResponse.IsSuccessStatusCode)
+                {
+                    var completionResponse = await AIResponse.Content.ReadFromJsonAsync<CompletionResponse>();
+                    return Ok(completionResponse);
+                }
+                else
+                {
+                    var errorMessage = await AIResponse.Content.ReadAsStringAsync();
+                    throw new Exception($"Failed to complete chat: {errorMessage}");
                 }
             }
             else
             {
-                return StatusCode((int)response.StatusCode, "Failed to fetch tags from GitHub API");
+                return BadRequest("Failed to retrieve tags from GitHub.");
             }
         }
-        catch (HttpRequestException ex)
+        catch (Exception ex)
         {
-            return StatusCode(500, $"An error occurred while fetching data from GitHub API: {ex.Message}");
+            return StatusCode(500, $"An error occurred: {ex.Message}");
         }
     }
+
+
+    public class CompletionResponse
+    {
+        public Choice[] choices { get; set; }
+    }
+
+    public class Choice
+    {
+        public ChatMessage message { get; set; }
+    }
+
+    public class ChatMessage
+    {
+        public string content { get; set; }
+        public string role { get; set; }
+    }
 }
+
+

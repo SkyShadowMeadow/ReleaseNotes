@@ -10,6 +10,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<IGitServices, GitServices>();
+builder.Services.AddSingleton<AIModelProviderService>();
 
 var app = builder.Build();
 
