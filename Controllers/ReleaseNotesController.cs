@@ -24,7 +24,7 @@ public class ReleaseNotesController : ControllerBase
 
 
     [HttpGet(Name = "CreateReleaseNotes")]
-    public async Task<IActionResult> CreateReleaseNotes(string repoUrl)
+    public async Task<IActionResult> CreateReleaseNotes(string repoUrl,  string newVersionTag = null, string previousVersionTag = null)
     {
         try
         {
@@ -46,8 +46,8 @@ public class ReleaseNotesController : ControllerBase
                     return BadRequest("The repository does not have at least two tags.");
                 }
 
-                var lastTag = tags[0].Name;
-                var secondLastTag = tags[1].Name;
+                var lastTag = string.IsNullOrEmpty(newVersionTag) ? tags[0].Name : newVersionTag;
+                var secondLastTag = string.IsNullOrEmpty(previousVersionTag) ? tags[0].Name : previousVersionTag;
 
                 var commitsUrl = $"https://api.github.com/repos/{owner}/{repoName}/compare/{secondLastTag}...{lastTag}";
                 gitRresponse = await client.GetAsync(commitsUrl);
