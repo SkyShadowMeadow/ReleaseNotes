@@ -7,7 +7,7 @@ namespace Services
 {
     public class GitService : IGitService
     {
-        private static string GitHubUrl = "https://api.github.com/repos/";
+        public static string GitHubUrl = "https://api.github.com/repos/";
         private readonly IHttpClientFactory _clientFactory;
         private HttpClient _client;
         private string commitMessagesAsString = "";
@@ -15,11 +15,13 @@ namespace Services
         public GitService(IHttpClientFactory clientFactory)
         {
             _clientFactory = clientFactory;
+            _client = _clientFactory.CreateClient();
+            _client.DefaultRequestHeaders.Add("User-Agent", "ReleaseNotesApp");
+        
         }
 
         public async Task<string> GetCommitMessages(string repoUrl, string newVersionTag, string previousVersionTag)
         {
-            CreateHttpClient();
             (string owner, string repoName) = GetOwnerAndNameFromRepoURL(repoUrl);
 
             var tags = await GetTagsAsync(repoUrl);
@@ -28,14 +30,13 @@ namespace Services
 
             var commitsUrl = $"{GitHubUrl}{owner}/{repoName}/compare/{secondLastTag}...{lastTag}";
             var gitRresponse = await _client.GetAsync(commitsUrl);
-
+          
             if (gitRresponse.IsSuccessStatusCode)
             {
                 string responseBody = await gitRresponse.Content.ReadAsStringAsync();
                 GitHubApiResponse commitMessages = JsonConvert.DeserializeObject<GitHubApiResponse>(responseBody);
                 commitMessagesAsString = commitMessages.GetConcatenatedResult();
                 return commitMessagesAsString;
-
             }
             else
             {
@@ -61,13 +62,6 @@ namespace Services
                 return tags;
             }
         }
-
-        private void CreateHttpClient()
-        {
-            _client = _clientFactory.CreateClient();
-            _client.DefaultRequestHeaders.Add("User-Agent", "ReleaseNotesApp");
-        }
-
 
         private (string owner, string repoName) GetOwnerAndNameFromRepoURL(string repoUrl)
         {

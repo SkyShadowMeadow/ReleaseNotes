@@ -2,7 +2,7 @@ using System.Runtime.Serialization;
 
 namespace Services.Exceptions
 {
-    internal class GitException : Exception
+    public class GitException : Exception
     {
         public GitException()
         {

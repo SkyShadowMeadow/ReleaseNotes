@@ -2,7 +2,7 @@ using System.Runtime.Serialization;
 
 namespace Services.Exceptions
 {
-    internal class OpenAIException : Exception
+    public class OpenAIException : Exception
     {
         public OpenAIException()
         {
