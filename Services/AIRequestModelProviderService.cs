@@ -15,7 +15,14 @@ namespace Services
             return new AIRequestModel
             {
                 Role = "user",
-                Content = $"Hello! Can you help me generate release notes based on this data? I need release notes in your response. Tags are: {tag1} and {tag2}. This is the commit messages: {commitMessages}"
+                Content = $@"Hello! Can you help me to generate release notes based on this data? 
+                            I need release notes in your response. Tags are: {tag1} and {tag2}. 
+                            This is the commit messages: {commitMessages}. 
+                            I want you to draw an overall conclusion in the beginning for a non-technical person.
+                            I want you to analyze messages and find common areas. 
+                            I want release notes to start with: Release notes of a new version {tag1}. 
+                            Then I want you to cluster those messages in features, fixes, and improvements. 
+                            Do not focus on merges. I want this notes to be understandable for a person outside the team, try to be less specific about certain variables. Use more descriptive approach"
             };
         }
     }
