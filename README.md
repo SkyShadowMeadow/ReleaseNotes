@@ -28,8 +28,13 @@ Once you have your API key, you need to add it to the project. This ensures secu
 
 ## 🚀 Get the result!
 ### Run, Request and Get the result
-
-- Run the app. Once started, the app will open a Swagger UI where you can input the parameters for your request.
+- In the terminal go to the root app folder.
+- Start the app buy the command dotnet run
+```markdown
+dotnet run
+```
+- Once started, the app will open a Swagger UI where you can input the parameters for your request.
+- If it doesn't start automatically this is the url to open swagger UI: http://localhost:5208/swagger/index.html
 ### Request Format
 
 To generate release notes, you'll need to make a request to the tool with the following parameters:
@@ -47,6 +52,7 @@ To generate release notes, you'll need to make a request to the tool with the fo
 
 I'm committed to enhancing the GitHub Release Notes Generator with the following improvements:
 
+- **Ready to deploy**: Dockerise the app to run on different platforms.
 - **Authentication Support**: Implement authentication mechanisms to access commit messages from private repositories.
 - **Extended Test Coverage**: Currently, only the GitService is thoroughly tested. I aim to expand tests to cover all components and functionalities.
 - **Support for More Platforms**: Extend the tool's compatibility to include GitLab and BitBucket repositories.
