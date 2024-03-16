@@ -1,5 +1,3 @@
-using System;
-
 namespace Configs
 {
     public class OpenAIConfig

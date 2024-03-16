@@ -1,5 +1,3 @@
-using System;
-
 namespace Models
 {
     public class AIModel
