@@ -20,7 +20,7 @@ namespace Services
         
         }
 
-        public async Task<string> GetCommitMessages(string repoUrl, string newVersionTag, string previousVersionTag)
+        public async Task<GitResponse> GetCommitMessages(string repoUrl, string newVersionTag, string previousVersionTag)
         {
             (string owner, string repoName) = GetOwnerAndNameFromRepoURL(repoUrl);
 
@@ -35,12 +35,15 @@ namespace Services
             {
                 string responseBody = await gitRresponse.Content.ReadAsStringAsync();
                 GitHubApiResponse commitMessages = JsonConvert.DeserializeObject<GitHubApiResponse>(responseBody);
-                commitMessagesAsString = commitMessages.GetConcatenatedResult();
-                return commitMessagesAsString;
+                GitResponse gitResponse = new GitResponse();
+                gitResponse.commitMessages = commitMessages.GetConcatenatedResult();
+                gitResponse.lasTag = lastTag;
+                gitResponse.secondLastTag = secondLastTag;
+                return gitResponse;
             }
             else
             {
-                return await Task.FromException<string>(new GitException("Failed to retrieve commits from GitHub."));
+                return await Task.FromException<GitResponse>(new GitException("Failed to retrieve commits from GitHub."));
             }
         }
 

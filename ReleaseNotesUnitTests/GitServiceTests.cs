@@ -96,10 +96,10 @@ namespace Tests
             var result = await _gitService.GetCommitMessages(repoUrl, newVersionTag, previousVersionTag);
 
             Assert.NotNull(result);
-            Assert.Contains("Initial commit", result);
-            Assert.Contains("Add new feature", result);
-            var indexOfInitialCommit = result.IndexOf("Initial commit");
-            var indexOfNewFeatureCommit = result.IndexOf("Add new feature");
+            Assert.Contains("Initial commit", result.commitMessages);
+            Assert.Contains("Add new feature", result.commitMessages);
+            var indexOfInitialCommit = result.commitMessages.IndexOf("Initial commit");
+            var indexOfNewFeatureCommit = result.commitMessages.IndexOf("Add new feature");
             Assert.True(indexOfInitialCommit < indexOfNewFeatureCommit, "Commits should be in the expected order.");
         }
 

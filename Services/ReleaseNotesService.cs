@@ -15,8 +15,8 @@ namespace Services
 
         public async Task<string> CreateReleaseNotes(string repoUrl,  string newVersionTag = null, string previousVersionTag = null)
         {
-            var commitMessages = await _gitHubService.GetCommitMessages(repoUrl, newVersionTag, previousVersionTag);
-            var releaseNotes = await _openAIService.ProcessUserPromtAsync(newVersionTag, previousVersionTag, commitMessages);
+            var gitResponse = await _gitHubService.GetCommitMessages(repoUrl, newVersionTag, previousVersionTag);
+            var releaseNotes = await _openAIService.ProcessUserPromtAsync(gitResponse.lasTag, gitResponse.secondLastTag, gitResponse.commitMessages);
             return releaseNotes;
         }
     }
