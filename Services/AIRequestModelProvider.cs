@@ -2,7 +2,7 @@ using Models;
 
 namespace Services
 {
-    public class AIRequestModelProviderService
+    public class AIRequestModelProvider
     {
         public AIRequestModel ReleaseNotesAiAssistant { get; } = new()
         {

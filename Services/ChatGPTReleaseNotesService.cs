@@ -10,21 +10,22 @@ namespace Services
         private readonly IHttpClientFactory _clientFactory;
         private HttpClient _client;
         private readonly AIModelProvider _aiModelProvider;
-        private AIRequestModelProviderService _aiRequestModelProvider = new AIRequestModelProviderService();
+        private AIRequestModelProvider _aiRequestModelProvider = new AIRequestModelProvider();
 
         public ChatGPTReleaseNotesService(IHttpClientFactory clientFactory, AIModelProvider aiModelProviderService)
         {
             _clientFactory = clientFactory;
             _aiModelProvider = aiModelProviderService;
+             _client = _clientFactory.CreateClient();
+            _client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_aiModelProvider.ChatGptAIModel.openAIKey}");
         }
 
         public async Task<string> ProcessUserPromtAsync(string tag1, string tag2, string input)
         {
-            CreateHttpClient();
             var releaseNotesAiUser = _aiRequestModelProvider.ReleaseNotesAiUser(tag1, tag2, input);
             var requestBody = new
             {
-                model = _aiModelProvider.ChatGptAIModel.modelName,
+                model = _aiModelProvider?.ChatGptAIModel.modelName,
                 messages = new[]
                 {
                     new { role = _aiRequestModelProvider.ReleaseNotesAiAssistant.Role,  content = _aiRequestModelProvider.ReleaseNotesAiAssistant.Content },
@@ -44,12 +45,6 @@ namespace Services
                 var errorMessage = await AIResponse.Content.ReadAsStringAsync();
                 throw new OpenAIException($"Failed to complete chat: {errorMessage}");
             }
-        }
-
-        private void CreateHttpClient()
-        {
-            _client = _clientFactory.CreateClient();
-            _client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_aiModelProvider.ChatGptAIModel.openAIKey}");
         }
     }
 }

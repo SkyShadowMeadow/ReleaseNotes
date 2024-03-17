@@ -1,3 +1,4 @@
+using Extentions;
 using Models;
 using Newtonsoft.Json;
 using Services.Exceptions;
@@ -10,7 +11,6 @@ namespace Services
         public static string GitHubUrl = "https://api.github.com/repos/";
         private readonly IHttpClientFactory _clientFactory;
         private HttpClient _client;
-        private string commitMessagesAsString = "";
 
         public GitService(IHttpClientFactory clientFactory)
         {
@@ -22,13 +22,14 @@ namespace Services
 
         public async Task<GitResponse> GetCommitMessages(string repoUrl, string newVersionTag, string previousVersionTag)
         {
-            (string owner, string repoName) = GetOwnerAndNameFromRepoURL(repoUrl);
+            (string owner, string repoName) = repoUrl.GetOwnerAndNameFromRepoURL();
 
             var tags = await GetTagsAsync(repoUrl);
+
             var lastTag = string.IsNullOrEmpty(newVersionTag) ? tags[0].Name : newVersionTag;
             var secondLastTag = string.IsNullOrEmpty(previousVersionTag) ? tags[1].Name : previousVersionTag;
-
             var commitsUrl = $"{GitHubUrl}{owner}/{repoName}/compare/{secondLastTag}...{lastTag}";
+            
             var gitRresponse = await _client.GetAsync(commitsUrl);
           
             if (gitRresponse.IsSuccessStatusCode)
@@ -49,7 +50,7 @@ namespace Services
 
         private async Task<List<Tag>> GetTagsAsync(string repoUrl)
         {
-            (string owner, string repoName) = GetOwnerAndNameFromRepoURL(repoUrl);
+            (string owner, string repoName) = repoUrl.GetOwnerAndNameFromRepoURL();
             var tagsUrl = $"{GitHubUrl}{owner}/{repoName}/tags";
             var gitRresponse = await _client.GetAsync(tagsUrl);
             var tagsJson = await gitRresponse.Content.ReadAsStringAsync();
@@ -64,18 +65,6 @@ namespace Services
             {
                 return tags;
             }
-        }
-
-        private (string owner, string repoName) GetOwnerAndNameFromRepoURL(string repoUrl)
-        {
-            string[] parts = repoUrl.Split('/');
-            if (parts.Length < 4)
-            {
-                throw new ArgumentException("Invalid repository URL");
-            }
-            string owner = parts[3];
-            string repoName = parts[4];
-            return (owner, repoName);
         }
     }
 }
