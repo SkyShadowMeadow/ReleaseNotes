@@ -8,42 +8,44 @@ namespace Services
     {
         private static string openAIURL = "https://api.openai.com/v1/chat/completions";
         private readonly IHttpClientFactory _clientFactory;
-        private HttpClient _client;
         private readonly AIModelProvider _aiModelProvider;
-        private AIRequestModelProvider _aiRequestModelProvider = new AIRequestModelProvider();
+        private readonly AIRequestModelProvider _aiRequestModelProvider = new AIRequestModelProvider();
 
         public ChatGPTReleaseNotesService(IHttpClientFactory clientFactory, AIModelProvider aiModelProviderService)
         {
             _clientFactory = clientFactory;
             _aiModelProvider = aiModelProviderService;
-             _client = _clientFactory.CreateClient();
-            _client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_aiModelProvider.ChatGptAIModel.openAIKey}");
         }
 
         public async Task<string> ProcessUserPromtAsync(string tag1, string tag2, string input)
         {
-            var releaseNotesAiUser = _aiRequestModelProvider.ReleaseNotesAiUser(tag1, tag2, input);
-            var requestBody = new
+            using (var client = _clientFactory.CreateClient())
             {
-                model = _aiModelProvider?.ChatGptAIModel.modelName,
-                messages = new[]
+                client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_aiModelProvider.ChatGptAIModel.openAIKey}");
+
+                var releaseNotesAiUser = _aiRequestModelProvider.ReleaseNotesAiUser(tag1, tag2, input);
+                var requestBody = new
                 {
-                    new { role = _aiRequestModelProvider.ReleaseNotesAiAssistant.Role,  content = _aiRequestModelProvider.ReleaseNotesAiAssistant.Content },
-                    new { role = releaseNotesAiUser.Role,  content = releaseNotesAiUser.Content }
+                    model = _aiModelProvider?.ChatGptAIModel.modelName,
+                    messages = new[]
+                    {
+                        new { role = _aiRequestModelProvider.ReleaseNotesAiAssistant.Role,  content = _aiRequestModelProvider.ReleaseNotesAiAssistant.Content },
+                        new { role = releaseNotesAiUser.Role,  content = releaseNotesAiUser.Content }
+                    }
+                };
+
+                var AIResponse = await client.PostAsJsonAsync(openAIURL, requestBody);
+
+                if (AIResponse.IsSuccessStatusCode)
+                {
+                    var completionResponse = await AIResponse.Content.ReadFromJsonAsync<CompletionResponse>();
+                    return completionResponse.choices[0].message.content;
                 }
-            };
-
-            var AIResponse = await _client.PostAsJsonAsync(openAIURL, requestBody);
-
-            if (AIResponse.IsSuccessStatusCode)
-            {
-                var completionResponse = await AIResponse.Content.ReadFromJsonAsync<CompletionResponse>();
-                return completionResponse.choices[0].message.content;
-            }
-            else
-            {
-                var errorMessage = await AIResponse.Content.ReadAsStringAsync();
-                throw new OpenAIException($"Failed to complete chat: {errorMessage}");
+                else
+                {
+                    var errorMessage = await AIResponse.Content.ReadAsStringAsync();
+                    throw new OpenAIException($"Failed to complete chat: {errorMessage}");
+                }
             }
         }
     }
