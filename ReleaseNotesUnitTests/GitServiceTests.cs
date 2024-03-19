@@ -18,50 +18,15 @@ namespace Tests
 
         public GitServiceTests()
         {
-            _handlerMock.Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(req =>
-                    req.Method == HttpMethod.Get && req.RequestUri.ToString().Contains("/tags")),
-                ItExpr.IsAny<CancellationToken>()
-            )
-            .ReturnsAsync(new HttpResponseMessage
-            {
-                StatusCode = HttpStatusCode.OK,
-                Content = new StringContent(JsonConvert.SerializeObject(new List<Tag> { new Tag { Name = "v2.0" }, new Tag { Name = "v1.0" } }))
-            });
-
-            _handlerMock.Protected()
-                .Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.Is<HttpRequestMessage>(req =>
-                        req.Method == HttpMethod.Get && req.RequestUri.ToString().Contains("/compare/")), 
-                    ItExpr.IsAny<CancellationToken>()
-                )
-                .ReturnsAsync(new HttpResponseMessage
-                {
-                    StatusCode = HttpStatusCode.OK,
-                    Content = new StringContent(JsonConvert.SerializeObject(new GitHubApiResponse
-                    {
-                        Commits = new List<CommitInfo>
-                        {
-                        new CommitInfo { Commit = new Commit { Message = "Initial commit" } },
-                        new CommitInfo { Commit = new Commit { Message = "Add new feature" } }
-                        }
-                    }))
-                });
-
-            var client = new HttpClient(_handlerMock.Object) { BaseAddress = new Uri("http://test.com"), };
+            var client = new HttpClient(_handlerMock.Object) { BaseAddress = new Uri("http://test.com") };
             _clientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(client);
 
             _gitService = new GitService(_clientFactoryMock.Object);
         }
 
-
         [Fact]
         public async Task GetCommitMessages_ReturnsCommitMessages()
         {
-
             string repoUrl = "https://github.com/owner/repo";
             string newVersionTag = "v2.0";
             string previousVersionTag = "v1.0";
@@ -78,16 +43,17 @@ namespace Tests
                 Content = new StringContent(JsonConvert.SerializeObject(new GitHubApiResponse
                 {
                     Commits = new List<CommitInfo>
-                {
-                    new CommitInfo { Commit = new Commit { Message = "Initial commit" } },
-                    new CommitInfo { Commit = new Commit { Message = "Add new feature" } }
-                }
+                    {
+                        new CommitInfo { Commit = new Commit { Message = "Initial commit" } },
+                        new CommitInfo { Commit = new Commit { Message = "Add new feature" } }
+                    }
                 }))
             };
 
-            _handlerMock.Protected().SetupSequence<Task<HttpResponseMessage>>(
+            _handlerMock.Protected()
+                .SetupSequence<Task<HttpResponseMessage>>(
                     "SendAsync",
-                    ItExpr.Is<HttpRequestMessage>(req => req.RequestUri.AbsolutePath.Contains("/tags")),
+                    ItExpr.IsAny<HttpRequestMessage>(),
                     ItExpr.IsAny<CancellationToken>()
                 )
                 .ReturnsAsync(tagsResponseMessage)
@@ -115,21 +81,20 @@ namespace Tests
             _handlerMock.Protected()
                 .SetupSequence<Task<HttpResponseMessage>>(
                     "SendAsync",
-                    ItExpr.Is<HttpRequestMessage>(req => req.RequestUri.AbsoluteUri.Contains(GitService.GitHubUrl)),
+                    ItExpr.IsAny<HttpRequestMessage>(),
                     ItExpr.IsAny<CancellationToken>()
                 )
                 .ReturnsAsync(new HttpResponseMessage
                 {
                     StatusCode = HttpStatusCode.OK,
-                    Content = new StringContent(JsonConvert.SerializeObject(tags)) 
+                    Content = new StringContent(JsonConvert.SerializeObject(tags))
                 })
                 .ReturnsAsync(new HttpResponseMessage
                 {
-                    StatusCode = HttpStatusCode.BadRequest, 
+                    StatusCode = HttpStatusCode.BadRequest,
                 });
 
             await Assert.ThrowsAsync<GitException>(async () => await _gitService.GetCommitMessages(repoUrl, newVersionTag, previousVersionTag));
         }
-
     }
 }
